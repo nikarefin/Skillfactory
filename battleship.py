@@ -1,6 +1,20 @@
-from random import randint, choice
-from colorama import Fore, Style
+# Пытался написать программу, используя ООП, сам, но понял, что пока
+# самостоятельно это сложно сделать и нужна практика, поэтому взял решение
+# с разбора, немного улучшив интерфейс:
+#
+# 1. Добавил класс для цвета.
+# 2. Сделал классический формат координат: буква + число.
+# 3. Избавился от перегруза интерфейса:
+#    - убрал мешающие восприятию разделители;
+#    - заменил нули для пустых клеток более подходящими символами;
+#    - ввёл другие обозначения для подбитых кораблей и промахов.
+# 4. Поменял порядок вывода сообщений и досок для лучшего восприятия игры.
+# 5. Добавил разделение ходов игрока.
 
+from random import randint, choice
+from colorama import init, Fore, Style
+
+init()
 
 class Color:
 	def __init__(self, message):
@@ -16,7 +30,7 @@ class Color:
 		return f"{Fore.RED}{self.message}{Style.RESET_ALL}"
 
 	def info(self):
-		return f"{Fore.GREEN}{Style.BRIGHT}{self.message}{Style.RESET_ALL}"
+		return f"{Fore.GREEN}{self.message}{Style.RESET_ALL}"
 
 	def warning(self):
 		return f"{Fore.YELLOW}{self.message}{Style.RESET_ALL}"
@@ -41,14 +55,9 @@ class BoardException(Exception):
 	pass
 
 
-class BoardOutException(BoardException):
-	def __str__(self):
-		return Color("Выстрелили за доску. Перестреляйте.\n").opacity()
-
-
 class BoardUsedException(BoardException):
 	def __str__(self):
-		return Color("В эту клетку уже стреляли. Перестреляйте.\n").opacity()
+		return "В эту клетку уже стреляли. Перестреляйте.\n"
 
 
 class BoardWrongShipException(BoardException):
@@ -134,8 +143,6 @@ class Board:
 		self.contour(ship)
 
 	def shot(self, d):
-		if self.out(d):
-			raise BoardOutException()
 
 		if d in self.busy:
 			raise BoardUsedException()
@@ -184,7 +191,8 @@ class Player:
 class AI(Player):
 	def ask(self):
 		d = Dot(choice("abcdef"), randint(0, 5))
-		print(Color("Выстрел компьютера:").computer(), d.x, d.y + 1)
+		print(Color("Выстрел компьютера: ").computer(), end="")
+		print(f"{d.x}{d.y + 1}")
 
 		for i in range(self.board.size):
 			if d.x == chr(97 + i):
@@ -196,26 +204,23 @@ class AI(Player):
 class User(Player):
 	def ask(self):
 		while True:
-			try:
-				x, y = input(Color("Ваш выстрел: ").player()).split()
+			cord = input(Color("Ваш выстрел: ").player())
+			x, y = cord[0], cord[1]
 
-				if (len(x) or len(y)) != 1 or x not in "abcdef" or y not in "123456":
-					print(Color("Ввели неверные координаты:").opacity())
-					print(Color("сначала латинская буква от a до f,").opacity())
-					print(Color("через пробел — число от 1 до 6").opacity())
-					print(Color("Пример: d 2\n").opacity())
-					continue
+			if len(cord) != 2 or (len(x) or len(y)) != 1 or x not in "abcdef" \
+					or y not in "123456":
+				print("Неверные координаты:")
+				print("сначала латинская буква от a до f, ")
+				print("потом без пробела — число от 1 до 6\n")
+				continue
 
-				for i in range(self.board.size):
-					if x == chr(97 + i):
-						x = i + 1
+			for i in range(self.board.size):
+				if x == chr(97 + i):
+					x = i + 1
 
-				x, y = int(x), int(y)
+			x, y = int(x), int(y)
 
-				return Dot(x - 1, y - 1)
-
-			except ValueError:
-				print(Color("Введите координаты через пробел\n").opacity())
+			return Dot(x - 1, y - 1)
 
 
 class Game:
@@ -255,10 +260,10 @@ class Game:
 
 	@staticmethod
 	def greet():
-		print(Color("И Г Р А   « М О Р С К О Й   Б О Й »\n").info())
-		print("Чтобы выстрелить, введите координаты клетки через пробел: ")
-		print("сначала латинская буква от a до f, потом число от 1 до 6")
-		print(Color("Пример: d 2\n").warning())
+		print(Color("И Г Р А   « М О Р С К О Й   Б О Й »").info())
+		print("Чтобы выстрелить, введите координаты клетки: ")
+		print("сначала латинская буква от a до f, ")
+		print("потом без пробела — число от 1 до 6\n")
 
 	def loop(self):
 		num = 0
